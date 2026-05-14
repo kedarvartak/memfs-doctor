@@ -1,0 +1,17 @@
+{
+  "name": "memfs-doctor-toolkit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only diagnostic toolkit for Letta MemFS clones",
+  "bin": {
+    "memfs-doctor": "./src/cli.mjs"
+  },
+  "scripts": {
+    "doctor:self": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\"",
+    "doctor:self:json": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\" --format json"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

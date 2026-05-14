@@ -1,10 +1,10 @@
 # MemFS Doctor Implementation Spec
 
-## Milestone 1
+## Current milestone
 
-Build a read-only CLI that diagnoses real Letta MemFS clones on disk and emits a compact health report.
+Build a read-only CLI that diagnoses real Letta MemFS clones on disk and emits a compact health report with recovery suggestions.
 
-This milestone is intentionally conservative:
+The implementation remains intentionally conservative:
 
 - no destructive repair
 - no automatic git mutation
@@ -61,7 +61,7 @@ This mirrors the future upstream target:
 letta memory doctor --agent <id>
 ```
 
-## Checks in Milestone 1
+## Checks currently implemented
 
 ### Filesystem checks
 
@@ -78,11 +78,14 @@ letta memory doctor --agent <id>
 - repo is a valid git working tree
 - current branch is readable
 - upstream branch exists
+- remote URL is readable
 - working tree dirty state
 - ahead / behind counts if available
+- local/remote divergence detection
 - detached HEAD detection
 - merge state detection
 - remote configured
+- force-push suspicion from remote-tracking reflog when available
 
 ### Content checks
 
@@ -111,6 +114,10 @@ letta memory doctor --agent <id>
 - `upstream`
 - `summary`
 - `findings`
+- `suggestions`
+- `severityCounts`
+- `checkedFiles`
+- `git`
 
 ### Finding fields
 
@@ -130,7 +137,9 @@ letta memory doctor --agent <id>
 - `GIT_NO_UPSTREAM`
 - `GIT_AHEAD_OF_REMOTE`
 - `GIT_BEHIND_REMOTE`
+- `GIT_DIVERGED_FROM_REMOTE`
 - `GIT_MERGE_IN_PROGRESS`
+- `GIT_FORCE_PUSH_SUSPECTED`
 - `CONFIG_MISSING`
 - `CONFIG_INVALID_JSON`
 - `CONFIG_VERSION_MISSING`
@@ -156,20 +165,24 @@ letta memory doctor --agent <id>
 - parse frontmatter with a narrow parser, not a full YAML dependency
 - keep the code small and inspectable
 
-## Non-goals for this milestone
+## What is verified already
+
+- healthy result on the real Letta MemFS clone
+- conflict-marker detection on an isolated copied fixture
+- malformed frontmatter detection on an isolated copied fixture
+- true git divergence detection on a synthetic remote/local sandbox
+- JSON report export to `/tmp`
+
+## Non-goals in the current implementation
 
 - automatic repair
 - backup archive creation
 - restore workflows
 - server-side validation
-- branch rewrite heuristics beyond what local git exposes simply
 
-## Milestone 2
-
-After Milestone 1 works on the real agent:
+## Next milestone
 
 - add backup bundle generation
-- add local/remote divergence detail
-- add force-push suspicion checks
-- add structured recovery suggestions
-- compare with `letta memory backup` and `restore`
+- add report bundling for support escalation
+- add optional safe frontmatter normalization
+- compare outputs directly with `letta memory backup` and `restore`

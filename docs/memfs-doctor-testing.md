@@ -332,6 +332,16 @@ We should not email Letta until all of the following are true:
 - recovery actions are backup-first and non-destructive by default
 - output is readable enough to paste into a GitHub issue or support thread
 
+## What is already validated in this workspace
+
+- real Letta Code `0.25.8` install and login flow
+- real MemFS clone discovered under `~/.letta/agents/<agent-id>/memory`
+- healthy baseline on the real agent
+- isolated conflict fixture detection
+- isolated malformed frontmatter detection
+- synthetic local/remote divergence detection with a temp bare remote
+- JSON report export to `/tmp/memfs-doctor-report`
+
 ## Recommended first milestone
 
 Milestone 1 should focus on read-only diagnosis:

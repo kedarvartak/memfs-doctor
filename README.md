@@ -14,7 +14,11 @@ Current checks:
 - memory directory exists
 - git repository is valid
 - branch and upstream are readable
+- remote URL is readable
 - dirty worktree detection
+- ahead / behind detection
+- divergence detection
+- force-push suspicion from remote-tracking reflog
 - merge/rebase in-progress detection
 - required MemFS paths exist
 - `.letta/config.json` parses
@@ -22,6 +26,8 @@ Current checks:
 - `description` exists in frontmatter
 - markdown body is non-empty
 - merge conflict markers are absent
+- recovery suggestions are generated from finding classes
+- JSON report export works
 
 ## Usage
 
@@ -66,6 +72,12 @@ Broken malformed frontmatter fixture:
 ```text
 WARNING GIT_DIRTY_WORKTREE
 ERROR FRONTMATTER_UNCLOSED [system/human.md]
+```
+
+Broken divergence sandbox:
+
+```text
+ERROR GIT_DIVERGED_FROM_REMOTE
 ```
 
 ## Docs

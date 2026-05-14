@@ -9,6 +9,7 @@ The implementation remains intentionally conservative:
 - no destructive repair
 - no automatic git mutation
 - no assumptions beyond validated on-disk invariants
+- backup-safe bundle export instead of auto-fix
 
 ## Real invariants observed on this machine
 
@@ -86,6 +87,7 @@ letta memory doctor --agent <id>
 - merge state detection
 - remote configured
 - force-push suspicion from remote-tracking reflog when available
+- support bundle export with repo snapshot and git evidence
 
 ### Content checks
 
@@ -172,6 +174,7 @@ letta memory doctor --agent <id>
 - malformed frontmatter detection on an isolated copied fixture
 - true git divergence detection on a synthetic remote/local sandbox
 - JSON report export to `/tmp`
+- support bundle export to `/tmp/memfs-bundles`
 
 ## Non-goals in the current implementation
 
@@ -182,7 +185,7 @@ letta memory doctor --agent <id>
 
 ## Next milestone
 
-- add backup bundle generation
 - add report bundling for support escalation
 - add optional safe frontmatter normalization
 - compare outputs directly with `letta memory backup` and `restore`
+- make bundle contents configurable so sensitive snapshots can be excluded

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "doctor:self": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\"",
-    "doctor:self:json": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\" --format json"
+    "doctor:self:json": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\" --format json",
+    "doctor:self:bundle": "node ./src/cli.mjs --memory-dir \"$HOME/.letta/agents/agent-9edb3aaa-735a-4db6-b9e0-dee86bcc8998/memory\" --export-bundle /tmp/memfs-bundles"
   },
   "engines": {
     "node": ">=18"

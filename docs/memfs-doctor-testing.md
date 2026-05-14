@@ -341,6 +341,7 @@ We should not email Letta until all of the following are true:
 - isolated malformed frontmatter detection
 - synthetic local/remote divergence detection with a temp bare remote
 - JSON report export to `/tmp/memfs-doctor-report`
+- support bundle export to `/tmp/memfs-bundles`
 
 ## Recommended first milestone
 

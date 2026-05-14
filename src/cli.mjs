@@ -11,6 +11,7 @@ function parseArgs(argv) {
     memoryDir: null,
     agentId: null,
     exportReport: null,
+    exportBundle: null,
     help: false,
   };
 
@@ -29,6 +30,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (arg === "--export-report") {
       args.exportReport = argv[i + 1] ?? null;
+      i += 1;
+    } else if (arg === "--export-bundle") {
+      args.exportBundle = argv[i + 1] ?? null;
       i += 1;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -50,12 +54,14 @@ Usage:
   memfs-doctor --agent <agent-id>
   memfs-doctor --agent <agent-id> --format json
   memfs-doctor --agent <agent-id> --export-report <file-or-dir>
+  memfs-doctor --agent <agent-id> --export-bundle <dir>
 
 Options:
   --memory-dir <path>         Inspect a specific MemFS directory
   --agent <id>                Resolve ~/.letta/agents/<id>/memory
   --format <text|json>        Output format (default: text)
   --export-report <path>      Write the JSON report to a file or directory
+  --export-bundle <dir>       Write a support bundle with report, git metadata, and a repo snapshot
   -h, --help                  Show help
 `);
 }
@@ -534,6 +540,74 @@ function exportReport(targetPath, report) {
   return outputPath;
 }
 
+function timestampForPath(date = new Date()) {
+  return date.toISOString().replace(/[:]/g, "-").replace(/\..+/, "Z");
+}
+
+function ensureDirectory(targetPath) {
+  const absolute = path.resolve(targetPath);
+  fs.mkdirSync(absolute, { recursive: true });
+  return absolute;
+}
+
+function writeTextFile(filePath, contents) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, contents, "utf8");
+}
+
+function gitOutput(repoDir, args) {
+  const result = runGit(repoDir, args);
+  if (result.status !== 0) {
+    return `COMMAND: git -C ${repoDir} ${args.join(" ")}\nEXIT: ${result.status}\nSTDERR:\n${result.stderr || ""}`;
+  }
+  return result.stdout || "";
+}
+
+function exportBundle(targetDir, report) {
+  const rootDir = ensureDirectory(targetDir);
+  const bundleDir = path.join(rootDir, `memfs-doctor-bundle-${timestampForPath()}`);
+  fs.mkdirSync(bundleDir, { recursive: true });
+
+  const reportPath = path.join(bundleDir, "report.json");
+  writeTextFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+
+  const metadataLines = [
+    `created_at=${new Date().toISOString()}`,
+    `memory_dir=${report.memoryDir}`,
+    `agent_id=${report.agentId ?? ""}`,
+    `status=${report.status}`,
+    `branch=${report.branch ?? ""}`,
+    `upstream=${report.upstream ?? ""}`,
+    `remote=${report.git?.remote ?? ""}`,
+  ];
+  writeTextFile(path.join(bundleDir, "metadata.env"), `${metadataLines.join("\n")}\n`);
+
+  writeTextFile(
+    path.join(bundleDir, "git-status.txt"),
+    gitOutput(report.memoryDir, ["status", "--porcelain=2", "--branch"]),
+  );
+  writeTextFile(
+    path.join(bundleDir, "git-log.txt"),
+    gitOutput(report.memoryDir, ["log", "--graph", "--oneline", "--decorate", "--all", "-n", "30"]),
+  );
+  writeTextFile(
+    path.join(bundleDir, "git-remotes.txt"),
+    gitOutput(report.memoryDir, ["remote", "-v"]),
+  );
+  writeTextFile(
+    path.join(bundleDir, "git-reflog-origin-main.txt"),
+    report.upstream ? gitOutput(report.memoryDir, ["reflog", "show", report.upstream, "-n", "20"]) : "No upstream configured.\n",
+  );
+
+  const snapshotDir = path.join(bundleDir, "memory-snapshot");
+  fs.cpSync(report.memoryDir, snapshotDir, {
+    recursive: true,
+    preserveTimestamps: true,
+  });
+
+  return bundleDir;
+}
+
 function main() {
   try {
     const args = parseArgs(process.argv.slice(2));
@@ -552,8 +626,12 @@ function main() {
 
     const report = inspect(args.memoryDir, args.agentId);
     let exportedPath = null;
+    let bundlePath = null;
     if (args.exportReport) {
       exportedPath = exportReport(args.exportReport, report);
+    }
+    if (args.exportBundle) {
+      bundlePath = exportBundle(args.exportBundle, report);
     }
 
     if (args.format === "json") {
@@ -562,6 +640,9 @@ function main() {
       console.log(formatText(report));
       if (exportedPath) {
         console.log(`Report written to: ${exportedPath}`);
+      }
+      if (bundlePath) {
+        console.log(`Bundle written to: ${bundlePath}`);
       }
     }
 

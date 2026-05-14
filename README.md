@@ -228,5 +228,3 @@ MemFS Doctor is a `letta memory doctor` style diagnostic and support-bundle tool
 - [Project spec](./docs/memfs-doctor-project.md)
 - [Testing plan](./docs/memfs-doctor-testing.md)
 - [Implementation spec](./docs/memfs-doctor-implementation.md)
-- [Outreach memo](./docs/memfs-doctor-outreach.md)
-- [Email draft](./docs/memfs-doctor-email.md)

@@ -1,82 +1,112 @@
+<div align="center">
+
 # MemFS Doctor Toolkit
 
-Read-only diagnostic toolkit for Letta MemFS clones.
+![Node.js](https://img.shields.io/badge/Node.js-20+-green)
+![Git](https://img.shields.io/badge/Git-Repository%20Diagnostics-blue)
+![MemFS](https://img.shields.io/badge/MemFS-Validation-orange)
+![Support Bundles](https://img.shields.io/badge/Support-Bundles-purple)
 
-## Problem
+Read-only diagnostic tooling for Letta MemFS repositories.
 
-Letta's core product claim is persistent, git-backed memory for long-lived agents.
+</div>
 
-That means MemFS failures are not just infra bugs. They directly affect user trust.
+Read-only diagnostic tooling for Letta MemFS repositories.
 
-The gap in the current workflow is that Letta already exposes useful memory operations like:
+## Background
 
-- `letta memory status`
-- `letta memory diff`
-- `letta memory backup`
-- `letta memory restore`
+MemFS introduces git-backed persistence for long-lived agent memory. That means the memory layer behaves like a distributed repository and can experience the same operational problems as any git-based system:
 
-But those commands do not yet answer the harder operational questions:
+* local and remote divergence
+* interrupted merges or rebases
+* malformed files
+* orphaned memory state
+* conflict markers committed into memory
+* force-push or sync inconsistencies
+* uncertainty around whether recovery actions are safe
 
-- Is this memory repo structurally healthy?
-- Did local and remote state diverge?
-- Are memory markdown files malformed?
-- Did a merge/conflict corrupt agent memory?
-- What evidence should a user or support engineer capture before trying recovery?
+Several recent issues in [Letta Code](https://github.com/letta-ai/letta-code?utm_source=chatgpt.com) exposed these failure modes in practice:
 
-That is the issue this project is aimed at.
+* [#2212 — MemFS git history repeatedly force-pushed by server, wiping agent memory](https://github.com/letta-ai/letta-code/issues/2212?utm_source=chatgpt.com)
+* [#2153 — Memfs sync wipes agent block_ids, description, and git_enabled on every sync cycle](https://github.com/letta-ai/letta-code/issues/2153?utm_source=chatgpt.com)
+* [#2185 — Memfs Sync Wipes block_ids on Every App Connection](https://github.com/letta-ai/letta-code/issues/2185?utm_source=chatgpt.com)
+* [#2264 — Server backfill creates orphan skills/<name>.md alongside skills/<name>/SKILL.md directories](https://github.com/letta-ai/letta-code/issues/2264?utm_source=chatgpt.com)
 
-## Solution
+Letta already exposes useful memory operations such as:
 
-MemFS Doctor adds a diagnostic layer on top of Letta's existing memory workflows.
+* `letta memory status`
+* `letta memory diff`
+* `letta memory backup`
+* `letta memory restore`
 
-Instead of trying to auto-fix memory aggressively, it does three safer things:
+Those commands are useful for interacting with memory, but they do not provide a structured way to inspect repository health, classify failure modes, or collect debugging evidence before attempting recovery.
 
-1. validates the local MemFS repo and memory file structure
-2. classifies failure modes like divergence, conflict markers, and malformed frontmatter
-3. exports a support bundle with the report, git evidence, and a full repo snapshot
+This project focuses on that diagnostic layer.
 
-That makes MemFS failures easier to detect, explain, and debug without risking destructive repair.
+---
 
-## Current status
+## Approach
 
-Milestone 1 is scaffolded and working against:
+MemFS Doctor treats the memory repository as an inspectable system rather than attempting automatic repair.
 
-- a real Letta Code `0.25.8` MemFS clone
-- isolated broken fixtures copied from the real clone
+The toolkit performs three categories of work:
 
-Current checks:
+1. Repository validation
+   Confirms that the MemFS clone, git metadata, and required memory structures are present and internally consistent.
 
-- memory directory exists
-- git repository is valid
-- branch and upstream are readable
-- remote URL is readable
-- dirty worktree detection
-- ahead / behind detection
-- divergence detection
-- force-push suspicion from remote-tracking reflog
-- merge/rebase in-progress detection
-- required MemFS paths exist
-- `.letta/config.json` parses
-- markdown frontmatter exists
-- `description` exists in frontmatter
-- markdown body is non-empty
-- merge conflict markers are absent
-- recovery suggestions are generated from finding classes
-- JSON report export works
-- support bundle export works
+2. Failure classification
+   Detects and categorizes operational issues such as divergence, unresolved merge conflicts, malformed frontmatter, missing metadata, and in-progress git operations.
 
-## Why this matters
+3. Evidence collection
+   Exports reproducible support bundles containing repository state, git metadata, logs, and a complete memory snapshot for debugging or recovery workflows.
 
-For a memory-first agent product, reliability work is product work.
+The goal is to make memory failures understandable before any destructive action is taken.
 
-If a user cannot tell whether their agent memory is healthy, they cannot safely trust:
+---
 
-- persistence across sessions
-- concurrent subagent workflows
-- memory edits over time
-- recovery after sync or crash issues
+## Current checks
 
-MemFS Doctor narrows that trust gap by making the memory repo inspectable.
+The current implementation validates:
+
+### Git state
+
+* repository validity
+* current branch detection
+* upstream tracking configuration
+* remote URL resolution
+* dirty worktree detection
+* ahead / behind detection
+* divergence detection
+* merge or rebase in progress
+* force-push suspicion from remote-tracking reflog state
+
+### MemFS structure
+
+* required memory directories exist
+* `.letta/config.json` parses correctly
+* markdown frontmatter exists
+* required `description` metadata exists
+* markdown body is non-empty
+* merge conflict markers are absent
+
+### Diagnostics and recovery support
+
+* finding classification
+* recovery suggestion generation
+* JSON report export
+* support bundle export with repository snapshot
+
+---
+
+## Tested against
+
+The toolkit has been validated against:
+
+* a real Letta Code MemFS-enabled agent
+* isolated malformed and conflict fixtures
+* synthetic divergence sandboxes
+
+---
 
 ## Usage
 
@@ -98,23 +128,17 @@ JSON output:
 node ./src/cli.mjs --agent <agent-id> --format json
 ```
 
-Support bundle:
+Export support bundle:
 
 ```bash
 node ./src/cli.mjs --agent <agent-id> --export-bundle /tmp/memfs-bundles
 ```
 
-## Demo script
+---
 
-This is the shortest useful demo flow.
+## Example outputs
 
-### 1. Show the healthy baseline on a real Letta agent
-
-```bash
-node ./src/cli.mjs --agent <agent-id>
-```
-
-Expected shape:
+Healthy repository:
 
 ```text
 Status: healthy
@@ -123,108 +147,51 @@ Upstream: origin/main
 Findings: none
 ```
 
-### 2. Export a support bundle
-
-```bash
-node ./src/cli.mjs --agent <agent-id> --export-bundle /tmp/memfs-bundles
-```
-
-Expected shape:
-
-```text
-Bundle written to: /tmp/memfs-bundles/memfs-doctor-bundle-<timestamp>
-```
-
-Then show the bundle contents:
-
-```bash
-find /tmp/memfs-bundles -maxdepth 3 -type f | sort
-```
-
-Point out:
-
-- `report.json`
-- `git-status.txt`
-- `git-log.txt`
-- `git-remotes.txt`
-- `git-reflog-origin-main.txt`
-- `memory-snapshot/`
-
-### 3. Show one broken-state diagnosis
-
-Conflict fixture:
-
-```bash
-node ./src/cli.mjs --memory-dir /tmp/memfs-fixture-conflict
-```
-
-Expected signal:
-
-```text
-ERROR CONFLICT_MARKERS_PRESENT [system/persona.md]
-```
-
-Or divergence fixture:
-
-```bash
-node ./src/cli.mjs --memory-dir /tmp/memfs-clone-a
-```
-
-Expected signal:
-
-```text
-ERROR GIT_DIVERGED_FROM_REMOTE
-```
-
-### 4. Explain the takeaway in one sentence
-
-Suggested line:
-
-`The tool doesn't try to guess a risky repair. It tells the user whether MemFS is healthy, what broke, and captures the right evidence before recovery.`
-
-## Verified examples
-
-Healthy real MemFS clone:
-
-```text
-Status: healthy
-Branch: main
-Upstream: origin/main
-Findings: none
-```
-
-Broken conflict fixture:
+Conflict state:
 
 ```text
 WARNING GIT_DIRTY_WORKTREE
 ERROR CONFLICT_MARKERS_PRESENT [system/persona.md]
 ```
 
-Broken malformed frontmatter fixture:
+Malformed frontmatter:
 
 ```text
 WARNING GIT_DIRTY_WORKTREE
 ERROR FRONTMATTER_UNCLOSED [system/human.md]
 ```
 
-Broken divergence sandbox:
+Diverged repository:
 
 ```text
 ERROR GIT_DIVERGED_FROM_REMOTE
 ```
 
-Support bundle output:
+Support bundle export:
 
 ```text
 Bundle written to: /tmp/memfs-bundles/memfs-doctor-bundle-<timestamp>
 ```
 
-## One-line pitch
+---
 
-MemFS Doctor is a `letta memory doctor` style diagnostic and support-bundle tool for git-backed agent memory.
+## Support bundle contents
 
-## Docs
+Exported bundles include:
 
-- [Project spec](./docs/memfs-doctor-project.md)
-- [Testing plan](./docs/memfs-doctor-testing.md)
-- [Implementation spec](./docs/memfs-doctor-implementation.md)
+* `report.json`
+* `git-status.txt`
+* `git-log.txt`
+* `git-remotes.txt`
+* `git-reflog-origin-main.txt`
+* `memory-snapshot/`
+
+These artifacts are intended to support debugging, incident analysis, and recovery workflows without mutating the underlying memory repository.
+
+---
+
+## Documentation
+
+* [Project spec](./docs/memfs-doctor-project.md)
+* [Testing plan](./docs/memfs-doctor-testing.md)
+* [Implementation spec](./docs/memfs-doctor-implementation.md)
